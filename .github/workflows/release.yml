@@ -1,0 +1,95 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+  pull-requests: write
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  release:
+    name: Build, sign, notarize, and prepare distribution
+    runs-on: xcode-27
+    environment: release
+    timeout-minutes: 180
+
+    steps:
+      - name: Check out source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Require the release tag to point to a reviewed default-branch commit
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          default_branch="$(gh repo view "$GITHUB_REPOSITORY" --json defaultBranchRef --jq '.defaultBranchRef.name')"
+          git fetch --no-tags origin "refs/heads/$default_branch"
+          git merge-base --is-ancestor "$GITHUB_SHA" FETCH_HEAD
+
+      - name: Build and notarize app and DMG
+        shell: bash
+        env:
+          APPLE_DEVELOPER_ID_P12_BASE64: ${{ secrets.APPLE_DEVELOPER_ID_P12_BASE64 }}
+          APPLE_DEVELOPER_ID_P12_PASSWORD: ${{ secrets.APPLE_DEVELOPER_ID_P12_PASSWORD }}
+          APPLE_DEVELOPER_ID_SIGNING_IDENTITY: ${{ secrets.APPLE_DEVELOPER_ID_SIGNING_IDENTITY }}
+          APPLE_NOTARY_API_KEY_BASE64: ${{ secrets.APPLE_NOTARY_API_KEY_BASE64 }}
+          APPLE_NOTARY_KEY_ID: ${{ secrets.APPLE_NOTARY_KEY_ID }}
+          APPLE_NOTARY_ISSUER_ID: ${{ secrets.APPLE_NOTARY_ISSUER_ID }}
+        run: |
+          set -euo pipefail
+          if [[ ! "$GITHUB_REF_NAME" =~ ^v([0-9]+(\.[0-9]+){1,2})$ ]]; then
+            echo "Release tags must look like v3.0 or v3.0.1." >&2
+            exit 2
+          fi
+          version="${BASH_REMATCH[1]}"
+          dmg_path="$RUNNER_TEMP/Quick-Look-Image-Size-${version}.dmg"
+          scripts/release-macos.sh "$version" "$dmg_path"
+          echo "VERSION=$version" >> "$GITHUB_ENV"
+          echo "DMG_PATH=$dmg_path" >> "$GITHUB_ENV"
+
+      - name: Create draft GitHub Release
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          gh release create "$GITHUB_REF_NAME" \
+            "$DMG_PATH" \
+            "$DMG_PATH.sha256" \
+            --draft \
+            --generate-notes \
+            --title "Quick Look Image Size $VERSION"
+
+      - name: Open Homebrew cask update pull request
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          gh auth setup-git --hostname github.com
+          default_branch="$(gh repo view "$GITHUB_REPOSITORY" --json defaultBranchRef --jq '.defaultBranchRef.name')"
+          branch="homebrew/qlimagesize-${VERSION}"
+          git fetch origin "$default_branch"
+          git checkout -b "$branch" "origin/$default_branch"
+          scripts/update-homebrew-cask.sh "$VERSION" "$DMG_PATH"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add Casks/lbenicio-qlimagesize.rb
+          git commit -m "Update Homebrew cask to $VERSION"
+          git push origin "$branch"
+          gh pr create \
+            --base "$default_branch" \
+            --head "$branch" \
+            --title "Update Homebrew cask to $VERSION" \
+            --body "Adds the Homebrew cask with the SHA-256 of the signed and notarized GitHub Release DMG. Publish the draft release before merging this pull request."

@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>CFBundleDisplayName</key><string>Quick Look Image Size Thumbnails</string>
+	<key>CFBundleExecutable</key><string>$(EXECUTABLE_NAME)</string>
+	<key>CFBundleIdentifier</key><string>$(PRODUCT_BUNDLE_IDENTIFIER)</string>
+	<key>CFBundleShortVersionString</key><string>$(MARKETING_VERSION)</string>
+	<key>CFBundleVersion</key><string>$(CURRENT_PROJECT_VERSION)</string>
+	<key>CFBundlePackageType</key><string>XPC!</string>
+	<key>NSExtension</key>
+	<dict>
+		<key>NSExtensionPrincipalClass</key><string>$(PRODUCT_MODULE_NAME).ThumbnailProvider</string>
+		<key>NSExtensionPointIdentifier</key><string>com.apple.quicklook.thumbnail</string>
+		<key>NSExtensionAttributes</key>
+		<dict>
+			<key>QLThumbnailMinimumDimension</key><integer>0</integer>
+			<key>QLSupportedContentTypes</key>
+			<array>
+				<string>public.image</string><string>public.webp</string><string>com.google.webp</string>
+				<string>fr.whine.webp</string><string>fr.whine.bpg</string><string>fr.whine.ppm</string>
+				<string>fr.whine.pgm</string><string>fr.whine.pbm</string>
+			</array>
+		</dict>
+	</dict>
+</dict>
+</plist>

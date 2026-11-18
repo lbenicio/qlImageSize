@@ -11,7 +11,9 @@
 #import <sys/stat.h>
 #import <sys/types.h>
 #import <ImageIO/ImageIO.h>
+#include <stdint.h>
 
+static const size_t kMaximumDecoderInputSize = 256 * 1024 * 1024;
 
 static size_t _get_file_size(CFURLRef url);
 
@@ -20,7 +22,10 @@ static size_t _get_file_size(CFURLRef url);
 void properties_for_file(CFURLRef url, size_t* width, size_t* height, size_t* dpi, size_t* file_size)
 {
 	// Create the image source
-	*width = 0, *height = 0, *dpi = 0, *file_size = 0;
+	*width = 0;
+	*height = 0;
+	*dpi = 0;
+	*file_size = 0;
 	CGImageSourceRef img_src = CGImageSourceCreateWithURL(url, NULL);
 	if (NULL == img_src)
 		return;
@@ -52,14 +57,27 @@ void properties_for_file(CFURLRef url, size_t* width, size_t* height, size_t* dp
 
 size_t read_file(CFStringRef filepath, uint8_t** buffer)
 {
+	if (buffer == NULL)
+		return 0;
+	*buffer = NULL;
+
 	// Open the file, get its size and read it
 	FILE* f = fopen([(__bridge NSString*)filepath UTF8String], "rb");
 	if (NULL == f)
 		return 0;
 
-	fseek(f, 0, SEEK_END);
-	const size_t file_size = (size_t)ftell(f);
-	fseek(f, 0, SEEK_SET);
+	if (fseek(f, 0, SEEK_END) != 0)
+	{
+		fclose(f);
+		return 0;
+	}
+	const long file_size_long = ftell(f);
+	if (file_size_long <= 0 || (unsigned long)file_size_long > kMaximumDecoderInputSize || fseek(f, 0, SEEK_SET) != 0)
+	{
+		fclose(f);
+		return 0;
+	}
+	const size_t file_size = (size_t)file_size_long;
 
 	*buffer = (uint8_t*)malloc(file_size);
 	if (NULL == (*buffer))

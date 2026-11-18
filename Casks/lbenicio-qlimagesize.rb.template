@@ -1,0 +1,18 @@
+cask "lbenicio-qlimagesize" do
+  version "__VERSION__"
+  sha256 "__SHA256__"
+
+  url "https://github.com/lbenicio/qlImageSize/releases/download/v#{version}/Quick-Look-Image-Size-#{version}.dmg"
+  name "Quick Look Image Size"
+  desc "Quick Look previews and Finder thumbnails with image dimensions"
+  homepage "https://github.com/lbenicio/qlImageSize"
+
+  depends_on macos: ">= :monterey"
+
+  app "Quick Look Image Size.app"
+
+  zap trash: [
+    "~/Library/Containers/fr.whine.qlimagesize",
+    "~/Library/Preferences/fr.whine.qlimagesize.plist",
+  ]
+end

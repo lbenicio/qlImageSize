@@ -1,105 +1,74 @@
-# This project is not maintained anymore, it has been killed by macOS 10.15, see issues for details.
+# Quick Look Image Size
 
-![License: BSD](https://img.shields.io/badge/license-BSD-blue.svg?style=flat) [![Build Status](https://travis-ci.com/Nyx0uf/qlImageSize.svg?branch=master)](https://travis-ci.com/Nyx0uf/qlImageSize)
+Quick Look Image Size is a macOS app that provides Quick Look previews and Finder thumbnails for images. It reports image dimensions, DPI when available, file size, and filename in the preview. It can decode WebP, BPG, and Netpbm images in addition to formats handled by ImageIO.
 
-This project is composed of both a **QuickLook** plugin and a **Spotlight** plugin. Both are independant and can be built separately.
-They require at least *macOS High Sierra (10.13)*.
+The project also includes a separate Spotlight importer for indexing dimensions and related metadata for WebP, BPG, and Netpbm files.
 
-# qlImageSize
+## Requirements
 
-This is the **QuickLook** plugin, it displays the dimensions, DPI and file size of an image in the title bar.
+- macOS 12 or later. The project builds with the macOS 27 SDK and supports both Apple silicon and Intel Macs.
+- Xcode 27 or later to build from source.
 
-![https://static.whine.fr/images/2014/qlimagesize4.jpg](https://static.whine.fr/images/2019/qlimagesize1.jpg)
+The old `.qlgenerator` format was removed from current macOS. Quick Look now runs as app extensions embedded in `Quick Look Image Size.app`.
 
-This plugin can also preview and generate *Finder* thumbnails for natively unsupported images formats [bpg](http://bellard.org/bpg/ "bpg") and  [WebP](https://developers.google.com/speed/webp/ "WebP").
+## Build and install Quick Look support
 
-![https://static.whine.fr/images/2014/qlimagesize3.jpg](https://static.whine.fr/images/2014/qlimagesize3.jpg)
+1. Open `qlImageSize.xcodeproj` in Xcode and build the `qlImageSize` scheme.
+2. Copy `Quick Look Image Size.app` from the build products to `/Applications` and open it once.
+3. In System Settings, open **General → Login Items & Extensions → Quick Look** and enable **Quick Look Image Size**.
 
-![https://static.whine.fr/images/2014/qlimagesize2.jpg](https://static.whine.fr/images/2014/qlimagesize2.jpg)
+Quick Look displays dimensions, DPI when available, file size, and filename in the preview title. Native formats continue to use the system's preview renderer; BPG and Netpbm previews are decoded by the extension.
 
+## Build and install the Spotlight importer
 
-# mdImageSize
+The `mdImageSize` scheme builds the independent `mdImageSize.mdimporter` bundle. Copy it to `~/Library/Spotlight`, then register it and reindex files as needed:
 
-This is the **Spotlight** plugin, it displays informations of unsupported images (**WebP**, **bpg**) in the Finder's inspector window.
+```sh
+mkdir -p ~/Library/Spotlight
+cp -R path/to/mdImageSize.mdimporter ~/Library/Spotlight/
+mdimport -r ~/Library/Spotlight/mdImageSize.mdimporter
+mdimport -i /path/to/image.webp
+```
 
-![https://static.whine.fr/images/2014/mdimagesize1.jpg](https://static.whine.fr/images/2014/mdimagesize1.jpg)
+The Spotlight importer remains a separate bundle and is not installed by the Homebrew cask.
 
+## Supported formats
 
-# Install
+- ImageIO formats, including JPEG, PNG, TIFF, HEIC, and WebP.
+- BPG, decoded with the bundled universal libbpg archive.
+- Netpbm PBM, PGM, and PPM formats, including ASCII and binary variants.
 
-3 choices :
+Finder and Quick Look may cache previews and thumbnails. If an image keeps showing an old result after installing an update, refresh the Finder/Quick Look cache or reindex the file with `mdimport`.
 
-1. Using [Homebrew Cask](https://brew.sh/): 
-    ```
-    brew install --cask qlimagesize mdimagesizemdimporter
-    ```
-2. Download the latest build from https://github.com/Nyx0uf/qlImageSize/releases/latest and save it to your `~/Library/QuickLook` and/or `~/Library/Spotlight` folder.
-3. Build from sources using Xcode. (just have to hit the build button).
+## Dependencies
 
+`deps/libbpg/libbpg.a` contains arm64 and x86_64 slices built from libbpg 0.9.8. The corresponding upstream source archive is included at `deps/libbpg/libbpg-0.9.8.tar.gz`; run `./deps/libbpg/build-universal.sh` to rebuild it. See its README for the component license terms.
 
-# Uninstall
+The app statically links the libbpg decoder. The release includes the corresponding source archive, rebuild script, and LGPL-2.1 license. See [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md) for license and source details.
 
-2 choices :
+## GitHub Releases and Homebrew
 
-1. Using [Homebrew Cask](https://brew.sh/):
-    ```
-    brew uninstall --cask qlimagesize mdimagesizemdimporter
-    ```
-2. Manually :
-    - Launch *Terminal.app* in `/Applications/Utilities`
-    - Copy and paste the following line:
-		```
-		rm -rf ~/Library/QuickLook/qlImageSize.qlgenerator ~/Library/Spotlight/mdImageSize.mdimporter
-		```
-    - Press <kbd>Enter</kbd>.
+Pushing a version tag such as `v3.0` starts the GitHub Actions release workflow on the Xcode 27 runner. It builds a universal app with that version, signs and notarizes the app and DMG, uploads both the DMG and its SHA-256 file to a **draft** GitHub Release, and opens a pull request that updates `Casks/lbenicio-qlimagesize.rb` with that release’s exact checksum.
 
+Before creating a release tag:
 
-# Limitations
+1. Set up a GitHub Actions environment named `release`, require approval from a release maintainer, restrict it to protected release tags, and add these secrets:
+   - `APPLE_DEVELOPER_ID_P12_BASE64`: base64-encoded Developer ID Application certificate exported as a `.p12` file.
+   - `APPLE_DEVELOPER_ID_P12_PASSWORD`: password for that `.p12` file.
+   - `APPLE_DEVELOPER_ID_SIGNING_IDENTITY`: full Keychain identity name for the Developer ID Application certificate.
+   - `APPLE_NOTARY_API_KEY_BASE64`: base64-encoded App Store Connect API `.p8` key with notarization access.
+   - `APPLE_NOTARY_KEY_ID` and `APPLE_NOTARY_ISSUER_ID`: the API key ID and issuer ID.
+2. Allow GitHub Actions to create pull requests in the repository settings. The workflow uses its repository-scoped `GITHUB_TOKEN` to create a draft release and the Homebrew cask update pull request.
+3. Protect release tags and create them only from reviewed commits. The workflow checks that each tag points to a commit on the default branch before using signing and notarization credentials.
+4. Review and publish the draft GitHub Release, then merge the generated cask pull request. Users can then install with:
 
-If you are a **Pixelmator** user, its own QuickLook plugin might get in the way when previewing **WebP** files. To fix this you need to edit the file `/Applications/Pixelmator.app/Contents/Library/QuickLook/PixelmatorLook.qlgenerator/Contents/Info.plist` and remove the dict entry that handles **webp**.
+   ```sh
+   brew tap lbenicio/qlimagesize https://github.com/lbenicio/qlImageSize
+   brew install --cask lbenicio-qlimagesize
+   ```
 
-After editing the `Info.plist`, QuickLook for the Pixelmator file format (such as `.pxm`) might not work due to Code Signing. You can unsign Pixelmator's QuickLook binary using the tool [unsign](https://github.com/steakknife/unsign). After downloading and building it, just run :
+The cask is generated only after a signed, notarized DMG exists; its SHA-256 is never guessed or disabled. Because this source repository does not use Homebrew's conventional `homebrew-` repository name, the tap command supplies its GitHub URL explicitly. The cask is named with the maintainer prefix to avoid Homebrew cask name collisions. A local unsigned build is for review and must not be published as the release asset. [Homebrew tap documentation](https://docs.brew.sh/Taps) explains this explicit-URL form.
 
-	unsign /Applications/Pixelmator.app/Contents/Library/QuickLook/PixelmatorLook.qlgenerator/Contents/MacOS/PixelmatorLook`.
+## License
 
-It will create another binary with the extension **unsigned**, rename the orignal binary for backup then remove the extension for the unsigned binary, ex :
-
-	mv /Applications/Pixelmator.app/Contents/Library/QuickLook/PixelmatorLook.qlgenerator/Contents/MacOS/PixelmatorLook /Applications/Pixelmator.app/Contents/Library/QuickLook/PixelmatorLook.qlgenerator/Contents/MacOS/PixelmatorLook.bak
-	mv /Applications/Pixelmator.app/Contents/Library/QuickLook/PixelmatorLook.qlgenerator/Contents/MacOS/PixelmatorLook.unsigned /Applications/Pixelmator.app/Contents/Library/QuickLook/PixelmatorLook.qlgenerator/Contents/MacOS/PixelmatorLook
-
-
-# Upgrading dependencies
-
-### libwbep
-
-Grab the [latest version](https://github.com/webmproject/libwebp/releases). Decompress the archive and simply run :
-
-	./autogen.sh
-	CFLAGS="-mmacosx-version-min=10.13" ./configure --disable-shared
-	make
-
-The resulting library can be found in *src/.libs/libwebp.a*.
-
-### libbpg
-
-Grab the [latest version](https://bellard.org/bpg/). Decompress the archive and edit the `Makefile` with the following changes :
-
-- Uncomment the line which reads `CONFIG_APPLE=y`
-- Comment both lines `USE_X265=y` and `USE_BPGVIEW=y`
-
-And replace the following
-
-	ifdef CONFIG_APPLE
-	LDFLAGS+=-Wl,-dead_strip
-
-with 
-
-	ifdef CONFIG_APPLE
-	LDFLAGS+=-Wl,-dead_strip
-	CFLAGS+=-mmacosx-version-min=10.13
-
-Then simply run `make`. The resulting library will be in the project directory.
-
-# License
-
-This project is released under the *MIT license*, see **LICENSE**.
+See [LICENSE.txt](LICENSE.txt) for the project license. Third-party components retain their own license terms. The libbpg decoder includes modified FFmpeg code under LGPL-2.1; the upstream BPG page also notes possible HEVC patent claims. License notices do not grant patent rights.

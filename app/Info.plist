@@ -1,0 +1,81 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>CFBundleDevelopmentRegion</key>
+	<string>en</string>
+	<key>CFBundleDisplayName</key>
+	<string>Quick Look Image Size</string>
+	<key>CFBundleExecutable</key>
+	<string>$(EXECUTABLE_NAME)</string>
+	<key>CFBundleIdentifier</key>
+	<string>$(PRODUCT_BUNDLE_IDENTIFIER)</string>
+	<key>CFBundleInfoDictionaryVersion</key>
+	<string>6.0</string>
+	<key>CFBundleName</key>
+	<string>Quick Look Image Size</string>
+	<key>CFBundlePackageType</key>
+	<string>APPL</string>
+	<key>CFBundleShortVersionString</key>
+	<string>$(MARKETING_VERSION)</string>
+	<key>CFBundleVersion</key>
+	<string>$(CURRENT_PROJECT_VERSION)</string>
+	<key>LSMinimumSystemVersion</key>
+	<string>12.0</string>
+	<key>NSPrincipalClass</key>
+	<string>NSApplication</string>
+	<key>UTExportedTypeDeclarations</key>
+	<array>
+		<dict>
+			<key>UTTypeConformsTo</key>
+			<array><string>public.image</string></array>
+			<key>UTTypeDescription</key>
+			<string>Better Portable Graphics image</string>
+			<key>UTTypeIdentifier</key>
+			<string>fr.whine.bpg</string>
+			<key>UTTypeTagSpecification</key>
+			<dict><key>public.filename-extension</key><array><string>bpg</string></array></dict>
+		</dict>
+		<dict>
+			<key>UTTypeConformsTo</key>
+			<array><string>public.image</string></array>
+			<key>UTTypeDescription</key>
+			<string>WebP image</string>
+			<key>UTTypeIdentifier</key>
+			<string>fr.whine.webp</string>
+			<key>UTTypeTagSpecification</key>
+			<dict><key>public.filename-extension</key><array><string>webp</string></array></dict>
+		</dict>
+		<dict>
+			<key>UTTypeConformsTo</key>
+			<array><string>public.image</string></array>
+			<key>UTTypeDescription</key>
+			<string>Netpbm bi-level image</string>
+			<key>UTTypeIdentifier</key>
+			<string>fr.whine.pbm</string>
+			<key>UTTypeTagSpecification</key>
+			<dict><key>public.filename-extension</key><array><string>pbm</string></array></dict>
+		</dict>
+		<dict>
+			<key>UTTypeConformsTo</key>
+			<array><string>public.image</string></array>
+			<key>UTTypeDescription</key>
+			<string>Netpbm grayscale image</string>
+			<key>UTTypeIdentifier</key>
+			<string>fr.whine.pgm</string>
+			<key>UTTypeTagSpecification</key>
+			<dict><key>public.filename-extension</key><array><string>pgm</string></array></dict>
+		</dict>
+		<dict>
+			<key>UTTypeConformsTo</key>
+			<array><string>public.image</string></array>
+			<key>UTTypeDescription</key>
+			<string>Netpbm color image</string>
+			<key>UTTypeIdentifier</key>
+			<string>fr.whine.ppm</string>
+			<key>UTTypeTagSpecification</key>
+			<dict><key>public.filename-extension</key><array><string>ppm</string></array></dict>
+		</dict>
+	</array>
+</dict>
+</plist>
