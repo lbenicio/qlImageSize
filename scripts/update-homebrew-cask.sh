@@ -4,7 +4,7 @@ set -euo pipefail
 repo_root="$(cd "$(dirname "$0")/.." && pwd)"
 
 if [[ $# -ne 2 ]]; then
-	printf 'Usage: %s VERSION /path/to/signed-notarized.dmg\n' "$0" >&2
+	printf 'Usage: %s VERSION /path/to/release.dmg\n' "$0" >&2
 	exit 2
 fi
 

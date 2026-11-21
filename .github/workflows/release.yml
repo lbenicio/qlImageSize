@@ -15,9 +15,8 @@ concurrency:
 
 jobs:
   release:
-    name: Build, sign, notarize, and prepare distribution
+    name: Build and prepare public release
     runs-on: xcode-27
-    environment: release
     timeout-minutes: 180
 
     steps:
@@ -37,15 +36,8 @@ jobs:
           git fetch --no-tags origin "refs/heads/$default_branch"
           git merge-base --is-ancestor "$GITHUB_SHA" FETCH_HEAD
 
-      - name: Build and notarize app and DMG
+      - name: Build ad-hoc signed app and DMG
         shell: bash
-        env:
-          APPLE_DEVELOPER_ID_P12_BASE64: ${{ secrets.APPLE_DEVELOPER_ID_P12_BASE64 }}
-          APPLE_DEVELOPER_ID_P12_PASSWORD: ${{ secrets.APPLE_DEVELOPER_ID_P12_PASSWORD }}
-          APPLE_DEVELOPER_ID_SIGNING_IDENTITY: ${{ secrets.APPLE_DEVELOPER_ID_SIGNING_IDENTITY }}
-          APPLE_NOTARY_API_KEY_BASE64: ${{ secrets.APPLE_NOTARY_API_KEY_BASE64 }}
-          APPLE_NOTARY_KEY_ID: ${{ secrets.APPLE_NOTARY_KEY_ID }}
-          APPLE_NOTARY_ISSUER_ID: ${{ secrets.APPLE_NOTARY_ISSUER_ID }}
         run: |
           set -euo pipefail
           if [[ ! "$GITHUB_REF_NAME" =~ ^v([0-9]+(\.[0-9]+){1,2})$ ]]; then
@@ -92,4 +84,4 @@ jobs:
             --base "$default_branch" \
             --head "$branch" \
             --title "Update Homebrew cask to $VERSION" \
-            --body "Adds the Homebrew cask with the SHA-256 of the signed and notarized GitHub Release DMG. Publish the draft release before merging this pull request."
+            --body "Adds the Homebrew cask with the SHA-256 of the ad-hoc signed GitHub Release DMG. This release has no Developer ID signature or notarization; publish the draft release before merging this pull request."

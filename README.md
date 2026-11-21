@@ -58,26 +58,20 @@ The app statically links the libbpg decoder. The release includes the correspond
 
 ## GitHub Releases and Homebrew
 
-Pushing a version tag such as `v3.0` starts the GitHub Actions release workflow on the Xcode 27 runner. It builds a universal app with that version, signs and notarizes the app and DMG, uploads both the DMG and its SHA-256 file to a **draft** GitHub Release, and opens a pull request that updates `Casks/lbenicio-qlimagesize.rb` with that release’s exact checksum.
+Pushing a version tag such as `v3.0` starts the GitHub Actions release workflow on the Xcode 27 runner. It builds a universal app with an ad-hoc code signature, packages it in a DMG, uploads the DMG and its SHA-256 file to a **draft** GitHub Release, and opens a pull request that updates `Casks/lbenicio-qlimagesize.rb` with that release’s exact checksum. Ad-hoc signing preserves the app and extension entitlements but contains no Developer ID certificate or Team ID. The workflow does not use Apple Developer account or notarization credentials.
 
 Before creating a release tag:
 
-1. Set up a GitHub Actions environment named `release`, require approval from a release maintainer, restrict it to protected release tags, and add these secrets:
-   - `APPLE_DEVELOPER_ID_P12_BASE64`: base64-encoded Developer ID Application certificate exported as a `.p12` file.
-   - `APPLE_DEVELOPER_ID_P12_PASSWORD`: password for that `.p12` file.
-   - `APPLE_DEVELOPER_ID_SIGNING_IDENTITY`: full Keychain identity name for the Developer ID Application certificate.
-   - `APPLE_NOTARY_API_KEY_BASE64`: base64-encoded App Store Connect API `.p8` key with notarization access.
-   - `APPLE_NOTARY_KEY_ID` and `APPLE_NOTARY_ISSUER_ID`: the API key ID and issuer ID.
-2. Allow GitHub Actions to create pull requests in the repository settings. The workflow uses its repository-scoped `GITHUB_TOKEN` to create a draft release and the Homebrew cask update pull request.
-3. Protect release tags and create them only from reviewed commits. The workflow checks that each tag points to a commit on the default branch before using signing and notarization credentials.
-4. Review and publish the draft GitHub Release, then merge the generated cask pull request. Users can then install with:
+1. Allow GitHub Actions to create pull requests in the repository settings. The workflow uses its repository-scoped `GITHUB_TOKEN` to create a draft release and the Homebrew cask update pull request; it needs no Apple account credentials. If you added Apple signing or notarization secrets for an earlier workflow version, delete them from the repository's Actions secrets and revoke any Apple API key that was created only for this release process.
+2. Protect release tags and create them only from reviewed commits. The workflow checks that each tag points to a commit on the default branch.
+3. Review and publish the draft GitHub Release, then merge the generated cask pull request. Users can then install with:
 
    ```sh
    brew tap lbenicio/qlimagesize https://github.com/lbenicio/qlImageSize
    brew install --cask lbenicio-qlimagesize
    ```
 
-The cask is generated only after a signed, notarized DMG exists; its SHA-256 is never guessed or disabled. Because this source repository does not use Homebrew's conventional `homebrew-` repository name, the tap command supplies its GitHub URL explicitly. The cask is named with the maintainer prefix to avoid Homebrew cask name collisions. A local unsigned build is for review and must not be published as the release asset. [Homebrew tap documentation](https://docs.brew.sh/Taps) explains this explicit-URL form.
+The cask is generated from the release DMG and uses its exact SHA-256. Because this source repository does not use Homebrew's conventional `homebrew-` repository name, the tap command supplies its GitHub URL explicitly. The cask is named with the maintainer prefix to avoid Homebrew cask name collisions. The DMG is not signed with a Developer ID and is not notarized, so macOS Gatekeeper will require users to approve the app manually after its first launch attempt in **System Settings → Privacy & Security → Security → Open Anyway**. Users should only approve it after verifying they obtained the DMG from this repository and that its SHA-256 matches the release. [Apple documents this override flow](https://support.apple.com/en-mide/guide/mac-help/mh40617/27/mac/27). This is the privacy trade-off for distributing without an Apple Developer identity; a Developer ID-signed, notarized build would open with fewer warnings but would identify the certificate holder. [Homebrew tap documentation](https://docs.brew.sh/Taps) explains the explicit-URL form.
 
 ## License
 
