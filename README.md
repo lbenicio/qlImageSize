@@ -9,6 +9,16 @@ The project also includes a separate Spotlight importer for indexing dimensions 
 - macOS 12 or later. The project builds with the macOS 27 SDK and supports both Apple silicon and Intel Macs.
 - Xcode 27 or later to build from source.
 
+## Continuous integration
+
+GitHub Actions runs the Netpbm decoder unit tests with coverage, builds the app and Spotlight importer, and uploads an LCOV report to Codecov on pushes and pull requests. Add a repository Actions secret named `CODECOV_TOKEN` to enable authenticated uploads; public repositories can also use Codecov's tokenless upload setting.
+
+Run the same unit tests locally with:
+
+```sh
+swift test --enable-code-coverage
+```
+
 The old `.qlgenerator` format was removed from current macOS. Quick Look now runs as app extensions embedded in `Quick Look Image Size.app`.
 
 ## Build and install Quick Look support

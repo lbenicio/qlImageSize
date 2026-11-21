@@ -1,0 +1,79 @@
+name: CI
+
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  test-and-build:
+    name: Unit tests, coverage, and macOS builds
+    runs-on: xcode-27
+    timeout-minutes: 30
+
+    steps:
+      - name: Check out source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+
+      - name: Run unit tests with coverage
+        shell: bash
+        run: swift test --enable-code-coverage --scratch-path "$RUNNER_TEMP/qlImageSize-swiftpm"
+
+      - name: Export LCOV coverage report
+        shell: bash
+        run: |
+          set -euo pipefail
+          scratch_path="$RUNNER_TEMP/qlImageSize-swiftpm"
+          bin_path="$(swift build --scratch-path "$scratch_path" --show-bin-path)"
+          test_binary="$bin_path/NetpbmDecoderTests.xctest/Contents/MacOS/NetpbmDecoderTests"
+          profile="$bin_path/codecov/default.profdata"
+          test -x "$test_binary"
+          test -f "$profile"
+          xcrun llvm-cov export \
+            -format=lcov \
+            -instr-profile "$profile" \
+            "$test_binary" > coverage.lcov
+
+      - name: Build universal app
+        shell: bash
+        run: |
+          set -euo pipefail
+          xcodebuild -quiet \
+            -project qlImageSize.xcodeproj \
+            -scheme qlImageSize \
+            -configuration Release \
+            -sdk macosx \
+            -destination 'generic/platform=macOS' \
+            -derivedDataPath "$RUNNER_TEMP/DerivedData" \
+            ARCHS='arm64 x86_64' \
+            ONLY_ACTIVE_ARCH=NO \
+            CODE_SIGNING_ALLOWED=NO \
+            build
+
+      - name: Build universal Spotlight importer
+        shell: bash
+        run: |
+          set -euo pipefail
+          xcodebuild -quiet \
+            -project qlImageSize.xcodeproj \
+            -scheme mdImageSize \
+            -configuration Release \
+            -sdk macosx \
+            -destination 'generic/platform=macOS' \
+            -derivedDataPath "$RUNNER_TEMP/DerivedData" \
+            ARCHS='arm64 x86_64' \
+            ONLY_ACTIVE_ARCH=NO \
+            CODE_SIGNING_ALLOWED=NO \
+            build
+
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@303a32d7a59b442fa8d48b6a1cc6825c09c847a5 # v7.1.1
+        with:
+          files: coverage.lcov
+          token: ${{ secrets.CODECOV_TOKEN }}
+          fail_ci_if_error: false
